@@ -178,7 +178,15 @@ if (token && verifyToken(token)) {
           body: formData,
         });
 
-        var data = await res.json();
+        var data;
+        try {
+          data = await res.json();
+        } catch (_) {
+          showError('Server error (' + res.status + '). Periksa log Vercel.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Masuk';
+          return;
+        }
 
         if (res.ok) {
           window.location.href = '/map';
@@ -188,7 +196,7 @@ if (token && verifyToken(token)) {
           submitBtn.textContent = 'Masuk';
         }
       } catch (err) {
-        showError('Terjadi kesalahan jaringan. Periksa koneksi Anda.');
+        showError('Gagal menghubungi server. Periksa koneksi Anda.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Masuk';
       }

@@ -7,7 +7,7 @@ export interface UserPayload {
 }
 
 function getSecret(): string {
-  const secret = import.meta.env.JWT_SECRET;
+  const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is not set');
   }
