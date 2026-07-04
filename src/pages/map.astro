@@ -247,7 +247,12 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
     import L from 'leaflet';
     import 'leaflet/dist/leaflet.css';
 
-    const currentUser = JSON.parse(document.getElementById('app-user').textContent);
+    const appUserEl = document.getElementById('app-user');
+    const currentUser = appUserEl ? JSON.parse(appUserEl.textContent || '{}') : {};
+
+    if (!currentUser.userId) {
+      document.getElementById('status-bar').textContent = 'Sesi tidak valid. Silakan login ulang.';
+    }
 
     const map = L.map('map', { zoomControl: true }).setView([-2.5, 118.0], 5);
 
