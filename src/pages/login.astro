@@ -1,7 +1,7 @@
 ---
 import { verifyToken } from '../lib/auth';
 const token = Astro.cookies.get('token')?.value;
-if (token && verifyToken(token)) {
+if (token && await verifyToken(token)) {
   return Astro.redirect('/map');
 }
 ---

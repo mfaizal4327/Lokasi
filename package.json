@@ -17,12 +17,11 @@
     "@neondatabase/serverless": "^0.9.4",
     "astro": "^5.18.2",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
+    "jose": "^6.2.3",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.6",
     "dotenv": "^16.4.7",
     "tsx": "^4.19.0"
   }

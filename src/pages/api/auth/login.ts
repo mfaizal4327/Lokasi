@@ -66,7 +66,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    const token = signToken({
+    const token = await signToken({
       userId: user.id as number,
       username: user.username as string,
       nama: user.nama as string,

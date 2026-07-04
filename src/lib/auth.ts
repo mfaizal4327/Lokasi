@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 
 export interface UserPayload {
   userId: number;
@@ -6,29 +6,30 @@ export interface UserPayload {
   nama: string;
 }
 
-function getSecret(): string {
+function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is not set');
   }
-  return secret;
+  return new TextEncoder().encode(secret);
 }
 
-export function signToken(payload: UserPayload): string {
-  return jwt.sign(payload, getSecret(), { expiresIn: '7d' });
+export async function signToken(payload: UserPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('7d')
+    .sign(getSecret());
 }
 
-export function verifyToken(token: string): UserPayload | null {
+export async function verifyToken(token: string): Promise<UserPayload | null> {
   try {
-    const decoded = jwt.verify(token, getSecret());
+    const { payload } = await jwtVerify(token, getSecret());
     if (
-      typeof decoded === 'object' &&
-      decoded !== null &&
-      'userId' in decoded &&
-      'username' in decoded &&
-      'nama' in decoded
+      typeof payload.userId === 'number' &&
+      typeof payload.username === 'string' &&
+      typeof payload.nama === 'string'
     ) {
-      return decoded as UserPayload;
+      return { userId: payload.userId, username: payload.username, nama: payload.nama };
     }
     return null;
   } catch {
