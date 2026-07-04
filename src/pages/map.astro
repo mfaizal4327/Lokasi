@@ -352,24 +352,40 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
 
     async function fetchLocations() {
       try {
-        const res = await fetch('/api/locations/all');
+        const res = await fetch('/api/locations/all', { credentials: 'same-origin' });
         if (res.status === 401) { window.location.href = '/login'; return; }
-        if (!res.ok) return;
+        if (!res.ok) {
+          userListEl.innerHTML = '<div class="user-empty">Gagal ambil data (HTTP ' + res.status + ')</div>';
+          return;
+        }
         const locations = await res.json();
         updateMarkers(locations);
         updateUserList(locations);
-      } catch { /* silent fail */ }
+      } catch (e) {
+        userListEl.innerHTML = '<div class="user-empty">Error: ' + e.message + '</div>';
+      }
     }
 
     async function sendLocation(lat, lng) {
       try {
         const res = await fetch('/api/locations/update', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ latitude: lat, longitude: lng }),
         });
-        if (res.status === 401) { window.location.href = '/login'; }
-      } catch { /* silent fail */ }
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) {
+          var errText = 'HTTP ' + res.status;
+          try { var d = await res.json(); if (d.error) errText += ': ' + d.error; } catch {}
+          statusEl.textContent = 'Gagal simpan lokasi - ' + errText;
+          statusEl.style.color = '#b91c1c';
+          statusEl.style.background = '#fef2f2';
+          statusEl.style.border = '1px solid #fecaca';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Network error: ' + e.message;
+      }
     }
 
     if ('geolocation' in navigator) {
