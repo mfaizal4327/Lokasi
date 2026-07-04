@@ -10,6 +10,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  const userId = Number(user.userId);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return new Response(JSON.stringify({ error: 'Invalid user session' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   let latitude: unknown;
   let longitude: unknown;
 
@@ -49,7 +57,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const sql = getDb();
     await sql`
       INSERT INTO locations (user_id, latitude, longitude, updated_at)
-      VALUES (${user.userId}, ${latitude}, ${longitude}, NOW())
+      VALUES (${userId}, ${latitude}, ${longitude}, NOW())
       ON CONFLICT (user_id) DO UPDATE
         SET latitude   = EXCLUDED.latitude,
             longitude  = EXCLUDED.longitude,

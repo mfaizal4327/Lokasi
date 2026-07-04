@@ -24,12 +24,16 @@ export async function signToken(payload: UserPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<UserPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
+    const userId = Number(payload['userId']);
+    const username = payload['username'];
+    const nama = payload['nama'];
     if (
-      typeof payload.userId === 'number' &&
-      typeof payload.username === 'string' &&
-      typeof payload.nama === 'string'
+      Number.isInteger(userId) &&
+      userId > 0 &&
+      typeof username === 'string' &&
+      typeof nama === 'string'
     ) {
-      return { userId: payload.userId, username: payload.username, nama: payload.nama };
+      return { userId, username, nama };
     }
     return null;
   } catch {
