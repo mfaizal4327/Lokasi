@@ -377,7 +377,7 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
         if (res.status === 401) { window.location.href = '/login'; return; }
         if (!res.ok) {
           var errText = 'HTTP ' + res.status;
-          try { var d = await res.json(); if (d.error) errText += ': ' + d.error; } catch {}
+          try { var d = await res.json(); if (d.detail) errText += ': ' + d.detail; else if (d.error) errText += ': ' + d.error; } catch {}
           statusEl.textContent = 'Gagal simpan lokasi - ' + errText;
           statusEl.style.color = '#b91c1c';
           statusEl.style.background = '#fef2f2';

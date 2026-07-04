@@ -61,8 +61,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    console.error('Location update error:', err);
-    return new Response(JSON.stringify({ error: 'Gagal menyimpan lokasi' }), {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('Location update error:', detail);
+    return new Response(JSON.stringify({ error: 'Gagal menyimpan lokasi', detail }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
