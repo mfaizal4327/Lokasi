@@ -353,16 +353,20 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
     async function fetchLocations() {
       try {
         const res = await fetch('/api/locations/all', { credentials: 'same-origin' });
-        if (res.status === 401) { window.location.href = '/login'; return; }
         if (!res.ok) {
-          userListEl.innerHTML = '<div class="user-empty">Gagal ambil data (HTTP ' + res.status + ')</div>';
+          if (res.status === 401) {
+            // Session habis - tampilkan pesan, jangan redirect paksa
+            userListEl.innerHTML = '<div class="user-empty">Sesi habis. Muat ulang halaman.</div>';
+          } else {
+            userListEl.innerHTML = '<div class="user-empty">Gagal ambil data (' + res.status + ')</div>';
+          }
           return;
         }
         const locations = await res.json();
         updateMarkers(locations);
         updateUserList(locations);
       } catch (e) {
-        userListEl.innerHTML = '<div class="user-empty">Error: ' + e.message + '</div>';
+        // Silent fail saat polling
       }
     }
 
@@ -374,7 +378,6 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ latitude: lat, longitude: lng }),
         });
-        if (res.status === 401) { window.location.href = '/login'; return; }
         if (!res.ok) {
           var errText = 'HTTP ' + res.status;
           try { var d = await res.json(); if (d.detail) errText += ': ' + d.detail; else if (d.error) errText += ': ' + d.error; } catch {}
@@ -384,7 +387,7 @@ const userJson = JSON.stringify({ userId: user.userId, username: user.username, 
           statusEl.style.border = '1px solid #fecaca';
         }
       } catch (e) {
-        statusEl.textContent = 'Network error: ' + e.message;
+        // Silent fail
       }
     }
 

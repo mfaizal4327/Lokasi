@@ -1,8 +1,17 @@
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../lib/db';
+import { verifyToken } from '../../../lib/auth';
 
-export const GET: APIRoute = async ({ locals }) => {
-  const user = locals.user;
+export const GET: APIRoute = async ({ cookies }) => {
+  // Verifikasi token langsung dari cookie (bukan dari locals)
+  const token = cookies.get('token')?.value;
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const user = await verifyToken(token);
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
