@@ -1,0 +1,4 @@
+---
+const token = Astro.cookies.get('token')?.value;
+return Astro.redirect(token ? '/map' : '/login');
+---

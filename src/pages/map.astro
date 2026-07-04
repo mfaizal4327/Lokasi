@@ -1,0 +1,414 @@
+---
+const user = Astro.locals.user!;
+// Escape < > untuk mencegah XSS di dalam script tag
+const userJson = JSON.stringify({ userId: user.userId, username: user.username, nama: user.nama })
+  .replace(/</g, '\\u003c')
+  .replace(/>/g, '\\u003e');
+---
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peta - Lokasi Share</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    .nav {
+      height: 54px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      z-index: 2000;
+    }
+    .nav-brand {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.2px;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-username {
+      font-size: 13px;
+      color: #64748b;
+    }
+    .btn-logout {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-logout:hover {
+      background: #f1f5f9;
+    }
+    .map-container {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .user-panel {
+      position: absolute;
+      bottom: 44px;
+      right: 10px;
+      width: 272px;
+      max-height: 380px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f4f8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      flex-shrink: 0;
+      background: #fafafa;
+    }
+    .panel-count {
+      background: #2563eb;
+      color: white;
+      border-radius: 20px;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 20px;
+      text-align: center;
+    }
+    .user-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .user-item:not(:last-child) {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .user-item:hover {
+      background: #f8fafc;
+    }
+    .user-item-me {
+      background: #f0f7ff;
+    }
+    .user-item-me:hover {
+      background: #dbeafe;
+    }
+    .user-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+    .user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .user-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-badge {
+      background: #2563eb;
+      color: white;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10px;
+      font-weight: 600;
+      flex-shrink: 0;
+      letter-spacing: 0.2px;
+    }
+    .user-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .user-username {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .user-time {
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+    .user-time::before {
+      content: '·';
+      margin-right: 3px;
+    }
+    .user-empty {
+      padding: 24px 16px;
+      text-align: center;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .status-bar {
+      position: absolute;
+      bottom: 44px;
+      left: 10px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: #475569;
+      z-index: 1000;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      max-width: 230px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span class="nav-brand">Lokasi Share</span>
+    <div class="nav-right">
+      <span class="nav-username">{user.nama}</span>
+      <button id="logout-btn" class="btn-logout">Keluar</button>
+    </div>
+  </nav>
+
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="user-panel">
+      <div class="panel-header">
+        <span>Pengguna Aktif</span>
+        <span class="panel-count" id="user-count">0</span>
+      </div>
+      <div class="user-list" id="user-list">
+        <div class="user-empty">Memuat data...</div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">Mengambil lokasi GPS...</div>
+  </div>
+
+  <script type="application/json" id="app-user" set:html={userJson}></script>
+
+  <script>
+    import L from 'leaflet';
+    import 'leaflet/dist/leaflet.css';
+
+    const currentUser = JSON.parse(document.getElementById('app-user').textContent);
+
+    const map = L.map('map', { zoomControl: true }).setView([-2.5, 118.0], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    const markers = {};
+    let firstPositionReceived = false;
+
+    const statusEl = document.getElementById('status-bar');
+    const userListEl = document.getElementById('user-list');
+    const userCountEl = document.getElementById('user-count');
+
+    function createIcon(isMe) {
+      const color = isMe ? '#2563eb' : '#e11d48';
+      return L.divIcon({
+        className: '',
+        html: '<div style="width:14px;height:14px;background:' + color + ';border-radius:50%;border:2px solid white;box-shadow:0 1px 6px rgba(0,0,0,0.4);"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+        popupAnchor: [0, -10],
+      });
+    }
+
+    function formatTime(isoString) {
+      return new Date(isoString).toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    }
+
+    function focusUser(userId) {
+      if (markers[userId]) {
+        map.setView(markers[userId].getLatLng(), 15, { animate: true });
+        markers[userId].openPopup();
+      }
+    }
+
+    // Event delegation - gantikan onclick inline
+    userListEl.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-user-id]');
+      if (item) focusUser(parseInt(item.dataset.userId));
+    });
+
+    function updateMarkers(locations) {
+      const activeIds = new Set(locations.map(l => l.id));
+
+      for (const id of Object.keys(markers)) {
+        if (!activeIds.has(parseInt(id))) {
+          map.removeLayer(markers[id]);
+          delete markers[id];
+        }
+      }
+
+      for (const loc of locations) {
+        const lat = parseFloat(loc.latitude);
+        const lng = parseFloat(loc.longitude);
+        const isMe = loc.id === currentUser.userId;
+
+        if (markers[loc.id]) {
+          markers[loc.id].setLatLng([lat, lng]);
+        } else {
+          markers[loc.id] = L.marker([lat, lng], {
+            icon: createIcon(isMe),
+            zIndexOffset: isMe ? 1000 : 0,
+          })
+            .bindPopup('<strong>' + loc.nama + '</strong><br>@' + loc.username)
+            .addTo(map);
+        }
+      }
+    }
+
+    function updateUserList(locations) {
+      userCountEl.textContent = locations.length;
+
+      if (locations.length === 0) {
+        userListEl.innerHTML = '<div class="user-empty">Belum ada pengguna aktif</div>';
+        return;
+      }
+
+      userListEl.innerHTML = locations.map(loc => {
+        const isMe = loc.id === currentUser.userId;
+        const color = isMe ? '#2563eb' : '#e11d48';
+        return '<div class="user-item' + (isMe ? ' user-item-me' : '') + '" data-user-id="' + loc.id + '">' +
+          '<div class="user-dot" style="background:' + color + ';"></div>' +
+          '<div class="user-info">' +
+          '<div class="user-name-row">' +
+          '<span class="user-name">' + loc.nama + '</span>' +
+          (isMe ? '<span class="user-badge">Saya</span>' : '') +
+          '</div>' +
+          '<div class="user-meta">' +
+          '<span class="user-username">@' + loc.username + '</span>' +
+          '<span class="user-time">' + formatTime(loc.updated_at) + '</span>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    async function fetchLocations() {
+      try {
+        const res = await fetch('/api/locations/all');
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) return;
+        const locations = await res.json();
+        updateMarkers(locations);
+        updateUserList(locations);
+      } catch { /* silent fail */ }
+    }
+
+    async function sendLocation(lat, lng) {
+      try {
+        const res = await fetch('/api/locations/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: lat, longitude: lng }),
+        });
+        if (res.status === 401) { window.location.href = '/login'; }
+      } catch { /* silent fail */ }
+    }
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          statusEl.textContent = 'Lokasi aktif - akurasi ' + Math.round(accuracy) + ' m';
+          statusEl.style.color = '#475569';
+          statusEl.style.background = 'white';
+          statusEl.style.border = '1px solid #e2e8f0';
+          sendLocation(latitude, longitude);
+          if (!firstPositionReceived) {
+            firstPositionReceived = true;
+            map.setView([latitude, longitude], 13);
+          }
+        },
+        (err) => {
+          const msgs = { 1: 'Izin akses lokasi ditolak', 2: 'Lokasi tidak tersedia', 3: 'Waktu habis saat mengambil lokasi' };
+          statusEl.textContent = msgs[err.code] || 'Gagal mengambil lokasi';
+          statusEl.style.color = '#b91c1c';
+          statusEl.style.background = '#fef2f2';
+          statusEl.style.border = '1px solid #fecaca';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
+    } else {
+      statusEl.textContent = 'Browser tidak mendukung geolocation';
+      statusEl.style.color = '#92400e';
+      statusEl.style.background = '#fffbeb';
+      statusEl.style.border = '1px solid #fde68a';
+    }
+
+    fetchLocations();
+    setInterval(fetchLocations, 5000);
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+  </script>
+</body>
+</html>
