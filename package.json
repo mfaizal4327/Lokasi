@@ -13,9 +13,9 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "@astrojs/vercel": "^7.8.0",
+    "@astrojs/vercel": "^8.2.11",
     "@neondatabase/serverless": "^0.9.4",
-    "astro": "^4.16.0",
+    "astro": "^5.18.2",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4"
